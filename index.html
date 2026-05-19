@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🏠 シェアハウス分担表</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
+:root {
+  --cream:#F8F5F0; --ink:#1C1A17; --accent:#D64000; --green:#2E7D32;
+  --green-l:#E8F5E9; --green-b:#81C784; --muted:#877F75; --border:#DDD8D0;
+  --card:#FFFFFF; --purple:#7B1FA2; --purple-l:#F3E5F5; --shadow:0 2px 8px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--cream);color:var(--ink);font-family:'Zen Kaku Gothic New',sans-serif;min-height:100vh;padding-bottom:90px}
+
+/* HEADER */
+header{background:var(--ink);padding:14px 14px 0;position:sticky;top:0;z-index:100}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.hdr-title h1{font-size:16px;font-weight:900;color:#F8F5F0;letter-spacing:.04em}
+.hdr-title .sub{font-size:10px;color:#6A6460;font-family:'DM Mono',monospace;letter-spacing:.08em;margin-top:2px}
+.sync-badge{font-size:10px;padding:4px 8px;border-radius:20px;font-family:'DM Mono',monospace;font-weight:500;flex-shrink:0;margin-top:2px;transition:all .3s}
+.sync-ok{background:#1B3A1C;color:#81C784}
+.sync-ing{background:#1A2A3A;color:#64B5F6}
+.sync-local{background:#3A3020;color:#FFB74D}
+.sync-err{background:#3A1A1A;color:#E57373}
+.score-row{display:flex;gap:8px;margin-bottom:10px}
+.chip{background:#2A2620;border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;flex:1;justify-content:center}
+.chip-name{font-size:10px;color:#7A746A}
+.chip-cnt{font-size:15px;font-weight:900;color:#F8F5F0;font-family:'DM Mono',monospace}
+.chip.leader .chip-cnt{color:#FFD54F}
+.chip-bw{flex:1;height:4px;background:#3A3630;border-radius:2px;max-width:60px}
+.chip-bf{height:100%;background:var(--green);border-radius:2px;transition:width .4s}
+
+/* TABS */
+.tabs{display:flex;background:var(--ink);border-bottom:2px solid #2A2620;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 13px;font-size:12px;font-weight:700;color:#5A5450;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;letter-spacing:.04em;transition:all .2s;flex-shrink:0}
+.tab .en{font-size:9px;font-family:'DM Mono',monospace;display:block;color:#4A4440;margin-top:1px}
+.tab.active{color:#F8F5F0;border-bottom-color:var(--accent)}
+.tab.active .en{color:#8A8480}
+
+/* VIEWS */
+.view{display:none;padding:14px}.view.active{display:block}
+
+/* SECTION TITLE */
+.sec{font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--border)}
+.sec .en{font-family:'DM Mono',monospace;font-size:9px;color:#BBB5AD;font-style:italic}
+
+/* TASK CARD */
+.tcard{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:12px 13px;margin-bottom:9px;display:flex;align-items:center;gap:11px;transition:all .2s;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:var(--shadow)}
+.tcard:active{transform:scale(.985)}
+.tcard.done{background:var(--green-l);border-color:var(--green-b)}
+.tcard.biweek{border-left:4px solid var(--purple)}
+.tcard.biweek.done{background:var(--purple-l);border-color:var(--purple)}
+.chk{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0;transition:all .2s;color:#fff}
+.tcard.done .chk{background:var(--green);border-color:var(--green)}
+.tinfo{flex:1;min-width:0}
+.tname{font-size:15px;font-weight:700;line-height:1.3}
+.tname-en{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px}
+.tcard.done .tname{text-decoration:line-through;color:var(--muted)}
+.tmeta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.badge{font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;border:1px solid var(--border);background:var(--cream);display:inline-flex;align-items:center;gap:3px}
+.badge.g{background:var(--green-l);border-color:var(--green-b);color:var(--green)}
+.badge.p{background:var(--purple-l);border-color:#CE93D8;color:var(--purple)}
+
+/* CALENDAR */
+.cal-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px}
+.cal-hdr{background:var(--ink);padding:12px 14px;display:flex;align-items:center;justify-content:space-between}
+.cal-hdr .cal-ttl{color:var(--cream);font-size:14px;font-weight:900;text-align:center}
+.cal-hdr .cal-ttl .cal-sub{font-size:10px;font-family:'DM Mono',monospace;color:#7A746A;font-style:italic;display:block;font-weight:400}
+.cal-nav{background:#2A2620;border:none;color:var(--cream);font-size:18px;padding:6px 10px;border-radius:8px;cursor:pointer;line-height:1}
+.cal-dh{display:grid;grid-template-columns:repeat(7,1fr);background:#F0EDE8;border-bottom:1px solid var(--border)}
+.cal-dl text-align:center;padding:6px 0;font-size:10px;font-weight:700;color:var(--muted);font-family:'DM Mono',monospace}
+.cal-dl.su{color:var(--accent)}.cal-dl.sa{color:#1565C0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:60px;padding:4px 3px;position:relative}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell.om .cal-d{color:#CCC}
+.cal-cell.tdy{background:#FFF8F5}
+.cal-cell.tdy .cal-d{background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+.cal-d{font-size:11px;font-weight:700;margin-bottom:3px;line-height:1}
+.cal-dot{font-size:8px;font-weight:700;border-radius:3px;padding:1px 3px;margin-bottom:2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-dot.t{background:#E3F2FD;color:#1565C0}
+.cal-dot.d{background:var(--green-l);color:var(--green)}
+.cal-dot.b{background:var(--purple-l);color:var(--purple)}
+
+/* HISTORY */
+.hcard{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:12px 13px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.htask{font-size:14px;font-weight:700}
+.htask-en{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted)}
+.hmeta{font-size:11px;color:var(--muted);margin-top:2px}
+.hmark{font-size:22px;font-weight:900;color:var(--green)}
+
+/* STATS */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.sc{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px;text-align:center;box-shadow:var(--shadow)}
+.sc.full{grid-column:1/-1}
+.sl{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.sl .en{font-family:'DM Mono',monospace;font-style:italic;font-size:9px;display:block;color:#BBB5AD}
+.sv{font-size:30px;font-weight:900;font-family:'DM Mono',monospace;margin:4px 0 2px}
+.ss{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+.prow{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:10px}
+.prow:last-child{border-bottom:none}
+.pname{font-size:12px;font-weight:700;min-width:70px}
+.pw{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.pb{height:100%;background:var(--green);border-radius:4px;transition:width .5s ease}
+.pcount{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;min-width:28px;text-align:right}
+
+/* SETTINGS */
+.scard{background:var(--card);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.srow{display:flex;align-items:center;padding:13px 13px;border-bottom:1px solid var(--border);gap:10px}
+.srow:last-child{border-bottom:none}
+.slbl{font-size:14px;font-weight:700}
+.slbl .en{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);display:block}
+input[type=text]{border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-family:'Zen Kaku Gothic New',sans-serif;font-size:14px;width:100%;background:var(--cream);color:var(--ink);outline:none;transition:border-color .2s}
+input[type=text]:focus{border-color:var(--accent)}
+select{border:1.5px solid var(--border);border-radius:8px;padding:8px 30px 8px 11px;font-family:'Zen Kaku Gothic New',sans-serif;font-size:14px;width:100%;background:var(--cream);color:var(--ink);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23877F75' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.flbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;font-family:'DM Mono',monospace}
+.frow{margin-bottom:10px}
+.addform{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;display:none;box-shadow:var(--shadow)}
+.addform.open{display:block}
+.btn{border:none;border-radius:10px;padding:12px 18px;font-family:'Zen Kaku Gothic New',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--accent);color:#fff;width:100%;margin-top:6px;display:block}
+.btn-add{display:flex;align-items:center;justify-content:center;gap:6px;background:none;border:1.5px dashed var(--border);color:var(--muted);border-radius:10px;padding:10px 14px;font-family:'Zen Kaku Gothic New',sans-serif;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-bottom:10px;transition:all .2s}
+.btn-add:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:#FFF3E0;border:1.5px solid #FFCC80;color:#E65100;border-radius:10px;padding:12px;font-family:'Zen Kaku Gothic New',sans-serif;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:6px}
+.tdel{color:#CCC;font-size:16px;padding:6px;cursor:pointer;background:none;border:none;flex-shrink:0;transition:color .2s}
+.tdel:hover{color:var(--accent)}
+.empty{text-align:center;color:var(--muted);padding:28px 16px;font-size:13px}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-top">
+    <div class="hdr-title">
+      <h1>🏠 シェアハウス分担表</h1>
+      <div class="sub">SHAREHOUSE CHORE CHART</div>
+    </div>
+    <div id="syncBadge" class="sync-badge sync-local">● local</div>
+  </div>
+  <div class="score-row" id="scoreRow"></div>
+  <div class="tabs">
+    <div class="tab active" data-tab="today" onclick="switchTab(this)">今日<span class="en">Today</span></div>
+    <div class="tab" data-tab="calendar" onclick="switchTab(this)">カレンダー<span class="en">Calendar</span></div>
+    <div class="tab" data-tab="weekly" onclick="switchTab(this)">今週<span class="en">This Week</span></div>
+    <div class="tab" data-tab="stats" onclick="switchTab(this)">集計<span class="en">Stats</span></div>
+    <div class="tab" data-tab="settings" onclick="switchTab(this)">設定<span class="en">Settings</span></div>
+  </div>
+</header>
+
+<div class="view active" id="view-today">
+  <div class="sec">今日のタスク <span class="en">Today's Chores</span></div>
+  <div id="today-tasks"></div>
+  <div class="empty" id="today-empty" style="display:none">🎉 今日のタスクはありません<br><small style="font-family:'DM Mono',monospace">No chores today!</small></div>
+</div>
+
+<div class="view" id="view-calendar">
+  <div class="cal-wrap">
+    <div class="cal-hdr">
+      <button class="cal-nav" onclick="calMove(-1)">‹</button>
+      <div class="cal-ttl">
+        <span id="calLabelJP"></span>
+        <span class="cal-sub" id="calLabelEN"></span>
+      </div>
+      <button class="cal-nav" onclick="calMove(1)">›</button>
+    </div>
+    <div class="cal-dh">
+      <div class="cal-dl su">SUN</div><div class="cal-dl">MON</div><div class="cal-dl">TUE</div>
+      <div class="cal-dl">WED</div><div class="cal-dl">THU</div><div class="cal-dl">FRI</div>
+      <div class="cal-dl sa">SAT</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+  <div class="sec">凡例 <span class="en">Legend</span></div>
+  <div class="legend">
+    <span class="cal-dot t" style="display:inline-block;padding:3px 8px;font-size:11px">予定 / Scheduled</span>
+    <span class="cal-dot d" style="display:inline-block;padding:3px 8px;font-size:11px">完了 / Done ◎</span>
+    <span class="cal-dot b" style="display:inline-block;padding:3px 8px;font-size:11px">隔週 / Biweekly</span>
+  </div>
+</div>
+
+<div class="view" id="view-weekly">
+  <div class="sec">今週の記録 <span class="en">This Week's Log</span></div>
+  <div id="weekly-history"></div>
+</div>
+
+<div class="view" id="view-stats">
+  <div class="sec">今月の集計 <span class="en">Monthly Stats</span></div>
+  <div class="sg" id="stats-grid"></div>
+  <div class="sec">メンバー比較 <span class="en">Comparison</span></div>
+  <div class="scard" style="padding:12px 13px" id="stats-detail"></div>
+</div>
+
+<div class="view" id="view-settings">
+  <div class="sec">メンバー名 <span class="en">Member Names</span></div>
+  <div class="scard">
+    <div class="srow">
+      <div style="flex:1">
+        <div class="flbl">Member 1</div>
+        <input type="text" id="name1" placeholder="名前 / Name" oninput="saveNames()">
+      </div>
+    </div>
+    <div class="srow">
+      <div style="flex:1">
+        <div class="flbl">Member 2</div>
+        <input type="text" id="name2" placeholder="名前 / Name" oninput="saveNames()">
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">タスク管理 <span class="en">Manage Chores</span></div>
+  <button class="btn-add" onclick="toggleAddForm()">＋ タスクを追加 / Add a Chore</button>
+
+  <div class="addform" id="addTaskForm">
+    <div class="frow">
+      <div class="flbl">タスク名 / Name (JP)</div>
+      <input type="text" id="newName" placeholder="例: ゴミ出し">
+    </div>
+    <div class="frow">
+      <div class="flbl">English Name (optional)</div>
+      <input type="text" id="newNameEn" placeholder="e.g. Take out trash">
+    </div>
+    <div class="frow">
+      <div class="flbl">担当 / Assignee</div>
+      <select id="newAssignee"></select>
+    </div>
+    <div class="frow">
+      <div class="flbl">頻度 / Frequency</div>
+      <select id="newFreq" onchange="onFreqChange()">
+        <option value="daily">毎日 / Every day</option>
+        <option value="mon">月曜 / Monday</option>
+        <option value="tue">火曜 / Tuesday</option>
+        <option value="wed">水曜 / Wednesday</option>
+        <option value="thu">木曜 / Thursday</option>
+        <option value="fri">金曜 / Friday</option>
+        <option value="sat">土曜 / Saturday</option>
+        <option value="sun">日曜 / Sunday</option>
+        <option value="biweek-mon">隔週 月曜 / Biweekly Mon</option>
+        <option value="biweek-tue">隔週 火曜 / Biweekly Tue</option>
+        <option value="biweek-wed">隔週 水曜 / Biweekly Wed</option>
+        <option value="biweek-thu">隔週 木曜 / Biweekly Thu</option>
+        <option value="biweek-fri">隔週 金曜 / Biweekly Fri</option>
+        <option value="biweek-sat">隔週 土曜 / Biweekly Sat</option>
+        <option value="biweek-sun">隔週 日曜 / Biweekly Sun</option>
+      </select>
+    </div>
+    <div class="frow" id="biweekRefRow" style="display:none">
+      <div class="flbl">基準週の開始日 / Biweekly Ref Date</div>
+      <input type="text" id="newBiweekRef" placeholder="YYYY-MM-DD (空白=今日 / blank=today)">
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace">This week counts as week 1. Odd weeks will be active.</div>
+    </div>
+    <button class="btn btn-p" onclick="addTask()">追加する / Add</button>
+  </div>
+
+  <div id="taskListSettings"></div>
+
+  <div class="sec" style="margin-top:20px">リreset <span class="en">Reset</span></div>
+  <button class="btn-danger" onclick="resetWeek()">⚠️ 今週の記録をリセット / Reset This Week's Log</button>
+</div>
+
+<script>
+const DOWS = ['sun','mon','tue','wed','thu','fri','sat'];
+const MONTHS_JP = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const FREQ_LBL = {
+  daily:'毎日/Daily', mon:'月/Mon', tue:'火/Tue', wed:'水/Wed',
+  thu:'木/Thu', fri:'金/Fri', sat:'土/Sat', sun:'日/Sun',
+  'biweek-mon':'隔週月/Biweekly Mon','biweek-tue':'隔週火/Biweekly Tue',
+  'biweek-wed':'隔週水/Biweekly Wed','biweek-thu':'隔週木/Biweekly Thu',
+  'biweek-fri':'隔週金/Biweekly Fri','biweek-sat':'隔週土/Biweekly Sat',
+  'biweek-sun':'隔週日/Biweekly Sun'
+};
+
+// ── 固定の同期用URL（2台で同じ場所を参照します） ──
+const SYNC_URL = 'https://kvdb.io/MN86S7vSg67A7S7vSg67A7/sharehouse_main_data';
+
+// ── STATE ──
+let state = {
+  names: ['メンバー1','メンバー2'],
+  tasks: [
+    {id:1,name:'ゴミ出し',nameEn:'Take out trash',assignee:'rotate',freq:'tue',rotateIdx:0,biweekRef:null},
+    {id:2,name:'お風呂掃除',nameEn:'Clean bathroom',assignee:'rotate',freq:'sat',rotateIdx:0,biweekRef:null},
+    {id:3,name:'キッチン掃除',nameEn:'Clean kitchen',assignee:'rotate',freq:'sun',rotateIdx:0,biweekRef:null},
+    {id:4,name:'エアコンフィルター',nameEn:'AC filter cleaning',assignee:'rotate',freq:'biweek-sat',rotateIdx:0,biweekRef:null},
+  ],
+  history: [],
+  stats: {},
+  nextId: 10
+};
+
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let syncTimer = null;
+
+function S() { return state; }
+function names() { return state.names; }
+function tasks() { return state.tasks; }
+
+// ── DATE ──
+function dateStr(d=new Date()) { return d.toISOString().split('T')[0]; }
+function todayStr() { return dateStr(); }
+function todayDow() { return DOWS[new Date().getDay()]; }
+
+function isBiweekActive(task, dateObj) {
+  const freqDow = task.freq.replace('biweek-','');
+  if (DOWS[dateObj.getDay()] !== freqDow) return false;
+  const ref = task.biweekRef ? new Date(task.biweekRef+'T12:00:00') : new Date();
+  const refDow = ref.getDay();
+  const refAligned = new Date(ref);
+  refAligned.setDate(ref.getDate() - refDow);
+  const cellWeekStart = new Date(dateObj);
+  cellWeekStart.setDate(dateObj.getDate() - dateObj.getDay());
+  const diffWeeks = Math.round((cellWeekStart - refAligned) / (7*86400000));
+  return diffWeeks % 2 === 0;
+}
+
+function isScheduledOn(task, dateObj) {
+  const dow = DOWS[dateObj.getDay()];
+  if (task.freq === 'daily') return true;
+  if (!task.freq.startsWith('biweek-')) return task.freq === dow;
+  return isBiweekActive(task, dateObj);
+}
+
+function isTodayScheduled(task) { return isScheduledOn(task, new Date()); }
+function isDoneOn(taskId, dStr) { return state.history.some(h => h.taskId === taskId && h.date === dStr); }
+
+function getDoneBy(taskId, dStr=todayStr()) {
+  const r = state.history.find(h => h.taskId === taskId && h.date === dStr);
+  return r ? r.who : null;
+}
+
+function getAssigneeName(task) {
+  if (task.assignee === 'rotate') return '交互/Rotate';
+  return state.names[parseInt(task.assignee)] || '?';
+}
+
+// ── ACTIONS ──
+function toggleDone(taskId) {
+  const today = todayStr();
+  const idx = state.history.findIndex(h => h.taskId === taskId && h.date === today);
+  if (idx >= 0) {
+    const rec = state.history[idx];
+    state.history.splice(idx, 1);
+    const m = today.slice(0,7);
+    if (state.stats[m] && state.stats[m][rec.who]) {
+      state.stats[m][rec.who] = Math.max(0, state.stats[m][rec.who]-1);
+    }
+  } else {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+    let who;
+    if (task.assignee === 'rotate') {
+      who = state.names[task.rotateIdx % 2];
+      task.rotateIdx = (task.rotateIdx+1) % 2;
+    } else {
+      who = state.names[parseInt(task.assignee)];
+    }
+    state.history.push({taskId, who, date:today, taskName:task.name, taskNameEn:task.nameEn||''});
+    const m = today.slice(0,7);
+    if (!state.stats[m]) state.stats[m] = {};
+    state.stats[m][who] = (state.stats[m][who]||0)+1;
+  }
+  persist(); render();
+}
+
+function addTask() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) { alert('タスク名を入力してください / Enter a chore name'); return; }
+  const nameEn = document.getElementById('newNameEn').value.trim();
+  const assignee = document.getElementById('newAssignee').value;
+  const freq = document.getElementById('newFreq').value;
+  let biweekRef = null;
+  if (freq.startsWith('biweek-')) {
+    const v = document.getElementById('newBiweekRef').value.trim();
+    biweekRef = v || todayStr();
+  }
+  state.tasks.push({id:state.nextId++, name, nameEn, assignee, freq, rotateIdx:0, biweekRef});
+  persist();
+  document.getElementById('newName').value = '';
+  document.getElementById('newNameEn').value = '';
+  document.getElementById('addTaskForm').classList.remove('open');
+  render();
+}
+
+function removeTask(id) {
+  if (!confirm('削除しますか？/ Delete this chore?')) return;
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  persist(); render();
+}
+
+function saveNames() {
+  state.names[0] = document.getElementById('name1').value.trim() || 'メンバー1';
+  state.names[1] = document.getElementById('name2').value.trim() || 'メンバー2';
+  persist(); render();
+}
+
+function resetWeek() {
+  if (!confirm('今週の記録をリセット？\nReset this week\'s records?')) return;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-cutoff.getDay()); cutoff.setHours(0,0,0,0);
+  state.history = state.history.filter(h => new Date(h.date+'T00:00:00') < cutoff);
+  persist(); render();
+}
+
+function toggleAddForm() { document.getElementById('addTaskForm').classList.toggle('open'); }
+function onFreqChange() {
+  const v = document.getElementById('newFreq').value;
+  document.getElementById('biweekRefRow').style.display = v.startsWith('biweek-') ? 'block' : 'none';
+}
+
+// ── SYNC (ルームコード不要の自動同期システム) ──
+function setSyncUI(s) {
+  const b = document.getElementById('syncBadge');
+  if (!b) return;
+  const map = {ok:['sync-ok','✓ 同期済み'], ing:['sync-ing','⟳ 同期中…'], local:['sync-local','● 準備中'], err:['sync-err','✕ 接続エラー']};
+  const [cls, txt] = map[s] || map.local;
+  b.className = 'sync-badge ' + cls; b.textContent = txt;
+}
+
+function persist() {
+  localStorage.setItem('sh_local', JSON.stringify(state));
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushToCloud, 1000); // 操作後1秒後に自動保存
+}
+
+async function pushToCloud() {
+  setSyncUI('ing');
+  try {
+    const res = await fetch(SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    });
+    setSyncUI(res.ok ? 'ok' : 'err');
+  } catch { setSyncUI('err'); }
+}
+
+async function pullFromCloud() {
+  setSyncUI('ing');
+  // ネットワークが遅い時のためにまずローカルデータを仮表示
+  const cached = localStorage.getItem('sh_local');
+  if (cached) { try { state = JSON.parse(cached); } catch {} }
+  
+  try {
+    const res = await fetch(SYNC_URL);
+    if (res.ok) {
+      const parsed = await res.json();
+      if (parsed && typeof parsed === 'object') {
+        state = parsed;
+        localStorage.setItem('sh_local', JSON.stringify(state));
+      }
+      setSyncUI('ok');
+    } else if (res.status === 404) {
+      // クラウドにデータがまだ無い場合は初回のアップロードを行う
+      pushToCloud();
+    } else {
+      setSyncUI('err');
+    }
+  } catch { setSyncUI('err'); }
+  render();
+}
+
+// ── TABS ──
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  el.classList.add('active');
+  const tab = el.dataset.tab;
+  document.getElementById('view-'+tab).classList.add('active');
+  if (tab === 'calendar') renderCalendar();
+}
+
+// ── CALENDAR ──
+function calMove(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth=11; calYear--; }
+  if (calMonth > 11) { calMonth=0; calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  document.getElementById('calLabelJP').textContent = calYear+'年 '+MONTHS_JP[calMonth];
+  document.getElementById('calLabelEN').textContent = MONTHS_EN[calMonth]+' '+calYear;
+  const first = new Date(calYear, calMonth, 1);
+  const last = new Date(calYear, calMonth+1, 0);
+  const startDow = first.getDay();
+  const todayD = todayStr();
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  for (let i=0; i<startDow; i++) {
+    grid.appendChild(makeCell(new Date(calYear,calMonth,1-(startDow-i)), true, todayD));
+  }
+  for (let d=1; d<=last.getDate(); d++) {
+    grid.appendChild(makeCell(new Date(calYear,calMonth,d), false, todayD));
+  }
+  const total = startDow + last.getDate();
+  const pad = total%7===0 ? 0 : 7-(total%7);
+  for (let i=1; i<=pad; i++) grid.appendChild(makeCell(new Date(calYear,calMonth+1,i), true, todayD));
+}
+
+function makeCell(dateObj, om, todayD) {
+  const dStr = dateStr(dateObj);
+  const isToday = dStr === todayD;
+  const cell = document.createElement('div');
+  cell.className = 'cal-cell'+(om?' om':'')+(isToday?' tdy':'');
+  const dn = document.createElement('div');
+  dn.className = 'cal-d'; dn.textContent = dateObj.getDate();
+  cell.appendChild(dn);
+  state.tasks.forEach(task => {
+    if (!isScheduledOn(task, dateObj)) return;
+    const done = isDoneOn(task.id, dStr);
+    const isBi = task.freq.startsWith('biweek-');
+    const dot = document.createElement('span');
+    dot.className = 'cal-dot '+(done?'d':(isBi?'b':'t'));
+    dot.textContent = (task.nameEn||task.name).slice(0,7);
+    dot.title = task.name+(task.nameEn?' / '+task.nameEn:'');
+    cell.appendChild(dot);
+  });
+  return cell;
+}
+
+// ── RENDER ──
+function render() {
+  renderHeader(); renderToday(); renderWeekly(); renderStats(); renderSettings();
+}
+
+function renderHeader() {
+  const m = (state.stats[todayStr().slice(0,7)])||{};
+  const maxC = Math.max(...state.names.map(n=>m[n]||0),1);
+  document.getElementById('scoreRow').innerHTML = state.names.map(n=>{
+    const c=m[n]||0, pct=Math.round(c/maxC*100), lead=c>0&&c===Math.max(...state.names.map(x=>m[x]||0));
+    return `<div class="chip ${lead?'leader':''}">
+      <span class="chip-name">${n.slice(0,5)}</span>
+      <div class="chip-bw"><div class="chip-bf" style="width:${pct}%"></div></div>
+      <span class="chip-cnt">${c}◎</span>
+    </div>`;
+  }).join('');
+}
+
+function renderToday() {
+  const todayTasks = state.tasks.filter(isTodayScheduled);
+  const el = document.getElementById('today-tasks');
+  const empty = document.getElementById('today-empty');
+  if (!todayTasks.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  el.innerHTML = todayTasks.map(task=>{
+    const done=isDoneOn(task.id,todayStr()), by=getDoneBy(task.id), isBi=task.freq.startsWith('biweek-');
+    return `<div class="tcard ${done?'done':''} ${isBi?'biweek':''}" onclick="toggleDone(${task.id})">
+      <div class="chk">${done?'◎':''}</div>
+      <div class="tinfo">
+        <div class="tname">${task.name}</div>
+        ${task.nameEn?`<div class="tname-en">${task.nameEn}</div>`:''}
+        <div class="tmeta">
+          <span class="badge">👤 ${getAssigneeName(task)}</span>
+          <span class="badge ${isBi?'p':''}">${FREQ_LBL[task.freq]||task.freq}</span>
+          ${done?`<span class="badge g">◎ ${by}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderWeekly() {
+  const el = document.getElementById('weekly-history');
+  const now=new Date(), ws=new Date(now); ws.setDate(now.getDate()-now.getDay()); ws.setHours(0,0,0,0);
+  const wh = state.history.filter(h=>new Date(h.date+'T00:00:00')>=ws);
+  if (!wh.length) { el.innerHTML='<div class="empty">まだ記録なし<br><small style="font-family:\'DM Mono\',monospace">No records yet this week</small></div>'; return; }
+  const days=['日','月','火','水','木','金','土'];
+  el.innerHTML = [...wh].sort((a,b)=>b.date.localeCompare(a.date)).map(h=>{
+    const d=new Date(h.date+'T12:00:00');
+    return `<div class="hcard">
+      <div>
+        <div class="htask">${h.taskName}</div>
+        ${h.taskNameEn?`<div class="htask-en">${h.taskNameEn}</div>`:''}
+        <div class="hmeta">${h.date} (${days[d.getDay()]}) · ${h.who}</div>
+      </div>
+      <div class="hmark">◎</div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats() {
+  const m=state.stats[todayStr().slice(0,7)]||{};
+  const total=Object.values(m).reduce((a,b)=>a+b,0);
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="sc full"><div class="sl">今月の合計<span class="en">Monthly Total</span></div><div class="sv">${total}</div><div class="ss">chores done</div></div>
+    ${state.names.map(n=>`<div class="sc"><div class="sl">${n}</div><div class="sv" style="color:var(--green)">${m[n]||0}</div><div class="ss">◎ done</div></div>`).join('')}
+  `;
+  const mx=Math.max(...state.names.map(n=>m[n]||0),1);
+  document.getElementById('stats-detail').innerHTML=state.names.map(n=>{
+    const c=m[n]||0,pct=Math.round(c/mx*100);
+    return `<div class="prow"><div class="pname">${n}</div><div class="pw"><div class="pb" style="width:${pct}%"></div></div><div class="pcount">${c}</div></div>`;
+  }).join('');
+}
+
+function renderSettings() {
+  document.getElementById('name1').value = state.names[0]!=='メンバー1'?state.names[0]:'';
+  document.getElementById('name2').value = state.names[1]!=='メンバー2'?state.names[1]:'';
+  const sel = document.getElementById('newAssignee');
+  if (sel) sel.innerHTML = `<option value="0">${state.names[0]}</option><option value="1">${state.names[1]}</option><option value="rotate">交互 / Rotate</option>`;
+  document.getElementById('taskListSettings').innerHTML = state.tasks.map(task=>{
+    const isBi=task.freq.startsWith('biweek-');
+    return `<div class="tcard" style="cursor:default">
+      <div class="tinfo">
+        <div class="tname">${task.name}</div>
+        ${task.nameEn?`<div class="tname-en">${task.nameEn}</div>`:''}
+        <div class="tmeta">
+          <span class="badge">👤 ${getAssigneeName(task)}</span>
+          <span class="badge ${isBi?'p':''}">${FREQ_LBL[task.freq]||task.freq}</span>
+        </div>
+      </div>
+      <button class="tdel" onclick="removeTask(${task.id})" title="削除/Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── INIT (アプリ起動時に自動でデータを読み込み) ──
+(function init(){
+  pullFromCloud();
+  // 10秒おきに裏側で自動で最新データに更新（自動同期リフレッシュ）
+  setInterval(pullFromCloud, 10000);
+})();
+</script>
+</body>
+</html>
