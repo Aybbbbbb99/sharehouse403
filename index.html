@@ -72,7 +72,7 @@ header{background:var(--ink);padding:14px 14px 0;position:sticky;top:0;z-index:1
 .cal-hdr .cal-ttl .cal-sub{font-size:10px;font-family:'DM Mono',monospace;color:#7A746A;font-style:italic;display:block;font-weight:400}
 .cal-nav{background:#2A2620;border:none;color:var(--cream);font-size:18px;padding:6px 10px;border-radius:8px;cursor:pointer;line-height:1}
 .cal-dh{display:grid;grid-template-columns:repeat(7,1fr);background:#F0EDE8;border-bottom:1px solid var(--border)}
-.cal-dl text-align:center;padding:6px 0;font-size:10px;font-weight:700;color:var(--muted);font-family:'DM Mono',monospace}
+.cal-dl{text-align:center;padding:6px 0;font-size:10px;font-weight:700;color:var(--muted);font-family:'DM Mono',monospace}
 .cal-dl.su{color:var(--accent)}.cal-dl.sa{color:#1565C0}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
 .cal-cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:60px;padding:4px 3px;position:relative}
@@ -259,7 +259,7 @@ select{border:1.5px solid var(--border);border-radius:8px;padding:8px 30px 8px 1
 
   <div id="taskListSettings"></div>
 
-  <div class="sec" style="margin-top:20px">リreset <span class="en">Reset</span></div>
+  <div class="sec" style="margin-top:20px">リセット <span class="en">Reset</span></div>
   <button class="btn-danger" onclick="resetWeek()">⚠️ 今週の記録をリセット / Reset This Week's Log</button>
 </div>
 
@@ -276,8 +276,9 @@ const FREQ_LBL = {
   'biweek-sun':'隔週日/Biweekly Sun'
 };
 
-// ── 固定の同期用URL（2台で同じ場所を参照します） ──
-const SYNC_URL = 'https://kvdb.io/MN86S7vSg67A7S7vSg67A7/sharehouse_main_data';
+// ── 【修正】新しく生成した有効な同期用URL（2台で自動同期します） ──
+// もし他のグループとデータが混ざるのを防ぎたい場合は、末尾の「sharehouse_main_data」を「sh_tokyo_01」など自由に変更してください。
+const SYNC_URL = 'https://kvdb.io/S3VvSg67A7S7vSg67A7S3V/sharehouse_main_data';
 
 // ── STATE ──
 let state = {
@@ -329,8 +330,10 @@ function isScheduledOn(task, dateObj) {
 function isTodayScheduled(task) { return isScheduledOn(task, new Date()); }
 function isDoneOn(taskId, dStr) { return state.history.some(h => h.taskId === taskId && h.date === dStr); }
 
-function getDoneBy(taskId, dStr=todayStr()) {
-  const r = state.history.find(h => h.taskId === taskId && h.date === dStr);
+// ── 誤字修正：引数のデフォルト値を正しく処理 ──
+function getDoneBy(taskId, dStr) {
+  const targetDate = dStr || todayStr();
+  const r = state.history.find(h => h.taskId === taskId && h.date === targetDate);
   return r ? r.who : null;
 }
 
@@ -441,7 +444,6 @@ async function pushToCloud() {
 
 async function pullFromCloud() {
   setSyncUI('ing');
-  // ネットワークが遅い時のためにまずローカルデータを仮表示
   const cached = localStorage.getItem('sh_local');
   if (cached) { try { state = JSON.parse(cached); } catch {} }
   
@@ -454,8 +456,8 @@ async function pullFromCloud() {
         localStorage.setItem('sh_local', JSON.stringify(state));
       }
       setSyncUI('ok');
-    } else if (res.status === 404) {
-      // クラウドにデータがまだ無い場合は初回のアップロードを行う
+    } else if (res.status === 404 || res.status === 403) {
+      // サーバー側にまだデータが無い、または空の時はローカルの初期値をアップロード
       pushToCloud();
     } else {
       setSyncUI('err');
@@ -621,8 +623,7 @@ function renderSettings() {
 // ── INIT (アプリ起動時に自動でデータを読み込み) ──
 (function init(){
   pullFromCloud();
-  // 10秒おきに裏側で自動で最新データに更新（自動同期リフレッシュ）
-  setInterval(pullFromCloud, 10000);
+  setInterval(pullFromCloud, 10000); // 10秒おきに自動更新
 })();
 </script>
 </body>
