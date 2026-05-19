@@ -276,9 +276,8 @@ const FREQ_LBL = {
   'biweek-sun':'隔週日/Biweekly Sun'
 };
 
-// ── 【修正】新しく生成した有効な同期用URL（2台で自動同期します） ──
-// もし他のグループとデータが混ざるのを防ぎたい場合は、末尾の「sharehouse_main_data」を「sh_tokyo_01」など自由に変更してください。
-const SYNC_URL = 'https://kvdb.io/S3VvSg67A7S7vSg67A7S3V/sharehouse_main_data';
+// ── SYNC KEY (window.storage shared key) ──
+const STORAGE_KEY = 'sharehouse_state';
 
 // ── STATE ──
 let state = {
@@ -415,54 +414,61 @@ function onFreqChange() {
   document.getElementById('biweekRefRow').style.display = v.startsWith('biweek-') ? 'block' : 'none';
 }
 
-// ── SYNC (ルームコード不要の自動同期システム) ──
+// ── SYNC (window.storage 共有ストレージ) ──
 function setSyncUI(s) {
   const b = document.getElementById('syncBadge');
   if (!b) return;
-  const map = {ok:['sync-ok','✓ 同期済み'], ing:['sync-ing','⟳ 同期中…'], local:['sync-local','● 準備中'], err:['sync-err','✕ 接続エラー']};
+  const map = {
+    ok:  ['sync-ok',  '✓ 同期済み / synced'],
+    ing: ['sync-ing', '⟳ 同期中… / syncing'],
+    local:['sync-local','● ローカル / local'],
+    err: ['sync-err', '✕ エラー / error']
+  };
   const [cls, txt] = map[s] || map.local;
-  b.className = 'sync-badge ' + cls; b.textContent = txt;
+  b.className = 'sync-badge ' + cls;
+  b.textContent = txt;
 }
 
 function persist() {
+  // ローカルにも保存しておく（即時反映用）
   localStorage.setItem('sh_local', JSON.stringify(state));
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(pushToCloud, 1000); // 操作後1秒後に自動保存
+  syncTimer = setTimeout(pushToCloud, 800);
 }
 
 async function pushToCloud() {
   setSyncUI('ing');
   try {
-    const res = await fetch(SYNC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state)
-    });
-    setSyncUI(res.ok ? 'ok' : 'err');
-  } catch { setSyncUI('err'); }
+    const result = await window.storage.set(STORAGE_KEY, JSON.stringify(state), true); // shared=true
+    setSyncUI(result ? 'ok' : 'err');
+  } catch(e) {
+    console.warn('push error', e);
+    setSyncUI('err');
+  }
 }
 
 async function pullFromCloud() {
   setSyncUI('ing');
+  // まずローカルキャッシュで即描画
   const cached = localStorage.getItem('sh_local');
-  if (cached) { try { state = JSON.parse(cached); } catch {} }
-  
+  if (cached) { try { state = JSON.parse(cached); render(); } catch {} }
+
   try {
-    const res = await fetch(SYNC_URL);
-    if (res.ok) {
-      const parsed = await res.json();
-      if (parsed && typeof parsed === 'object') {
+    const result = await window.storage.get(STORAGE_KEY, true); // shared=true
+    if (result && result.value) {
+      const parsed = JSON.parse(result.value);
+      if (parsed && typeof parsed === 'object' && parsed.tasks) {
         state = parsed;
         localStorage.setItem('sh_local', JSON.stringify(state));
       }
-      setSyncUI('ok');
-    } else if (res.status === 404 || res.status === 403) {
-      // サーバー側にまだデータが無い、または空の時はローカルの初期値をアップロード
-      pushToCloud();
-    } else {
-      setSyncUI('err');
     }
-  } catch { setSyncUI('err'); }
+    setSyncUI('ok');
+  } catch(e) {
+    // キーが存在しない = 初回。ローカルデータをそのままアップロード
+    console.log('No cloud data yet, pushing initial state');
+    await pushToCloud();
+    setSyncUI('ok');
+  }
   render();
 }
 
